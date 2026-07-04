@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Job Scheduler — Distributed Queue Dashboard</title>
+    <meta name="description" content="Production-grade distributed job scheduling dashboard with live queue monitoring, worker health, and execution logs." />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">⚡</span>
+        <div>
+          <strong>JobScheduler</strong>
+          <small>Distributed queues</small>
+        </div>
+      </div>
+
+      <span class="nav-label">Navigation</span>
+      <nav class="sidebar-nav">
+        <button class="nav active" id="nav-overview" data-view="overview">
+          <span class="nav-icon">📊</span><span>Overview</span>
+        </button>
+        <button class="nav" id="nav-queues" data-view="queues">
+          <span class="nav-icon">📦</span><span>Queues</span>
+        </button>
+        <button class="nav" id="nav-jobs" data-view="jobs">
+          <span class="nav-icon">🔧</span><span>Jobs</span>
+        </button>
+        <button class="nav" id="nav-workers" data-view="workers">
+          <span class="nav-icon">🖥️</span><span>Workers</span>
+        </button>
+        <button class="nav" id="nav-logs" data-view="logs">
+          <span class="nav-icon">📋</span><span>Logs</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div><span class="pulse-dot"></span>Live polling every 5s</div>
+        <div style="margin-top:6px;">Acme Operations</div>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">Overview</h1>
+          <p id="subtitle">Real-time distributed queue health and execution monitoring</p>
+        </div>
+        <div class="session">
+          <span id="userEmail">demo@example.com</span>
+          <button id="refreshBtn">↻ Refresh</button>
+        </div>
+      </header>
+
+      <!-- ── OVERVIEW ── -->
+      <section id="overview" class="view active">
+        <div class="metrics" id="metrics"></div>
+        <div class="split">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">📦 Queue Health <span class="badge" id="queueCount">0</span></span>
+            </div>
+            <div id="queueHealth" class="table"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">🖥️ Workers <span class="badge" id="workerCount">0</span></span>
+            </div>
+            <div id="workerHealth" class="table"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── QUEUES ── -->
+      <section id="queues" class="view">
+        <div class="toolbar">
+          <div>
+            <div class="section-header">Queues</div>
+            <div class="section-sub">Manage queue priorities, concurrency limits and pause/resume.</div>
+          </div>
+          <button class="btn btn-primary" id="createJobBtn">＋ New Job</button>
+        </div>
+        <div id="queuesTable" class="table"></div>
+      </section>
+
+      <!-- ── JOBS ── -->
+      <section id="jobs" class="view">
+        <div class="toolbar">
+          <div>
+            <div class="section-header">Job Explorer</div>
+            <div class="section-sub">Browse, filter, and inspect individual job executions.</div>
+          </div>
+          <div class="filters">
+            <select id="statusFilter">
+              <option value="">All states</option>
+              <option value="queued">Queued</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="claimed">Claimed</option>
+              <option value="running">Running</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+              <option value="dead_lettered">Dead lettered</option>
+            </select>
+            <select id="queueFilter">
+              <option value="">All queues</option>
+            </select>
+            <button class="btn btn-primary" id="createJobBtn2">＋ New Job</button>
+          </div>
+        </div>
+        <div id="jobsTable" class="table"></div>
+        <div class="detail-card" id="jobDetailCard" style="display:none;">
+          <div class="panel-header">
+            <span class="panel-title">🔍 Job Detail</span>
+            <button class="btn" id="closeDetail">✕ Close</button>
+          </div>
+          <div id="jobDetail">Select a job to inspect executions and logs.</div>
+        </div>
+      </section>
+
+      <!-- ── WORKERS ── -->
+      <section id="workers" class="view">
+        <div class="toolbar">
+          <div>
+            <div class="section-header">Workers</div>
+            <div class="section-sub">Monitor worker heartbeats, capacity, and active job counts.</div>
+          </div>
+        </div>
+        <div id="workersTable" class="table"></div>
+      </section>
+
+      <!-- ── LOGS ── -->
+      <section id="logs" class="view">
+        <div class="toolbar">
+          <div>
+            <div class="section-header">Execution Logs</div>
+            <div class="section-sub">Recent job execution log lines across all queues.</div>
+          </div>
+        </div>
+        <div id="logsPanel" class="logs"></div>
+      </section>
+    </main>
+
+    <!-- ── CREATE JOB DIALOG ── -->
+    <dialog id="jobDialog">
+      <form method="dialog" id="jobForm">
+        <h2>Create New Job</h2>
+        <label>
+          Queue
+          <select id="jobQueue"></select>
+        </label>
+        <label>
+          Kind
+          <select id="jobKind">
+            <option value="immediate">Immediate</option>
+            <option value="delayed">Delayed</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="recurring">Recurring</option>
+            <option value="batch">Batch</option>
+          </select>
+        </label>
+        <label>
+          Payload (JSON)
+          <textarea id="jobPayload">{"task": "manual-job", "duration_ms": 800}</textarea>
+        </label>
+        <label>
+          Delay (seconds)
+          <input id="jobDelay" type="number" min="0" value="0" />
+        </label>
+        <menu>
+          <button class="btn" value="cancel" type="button" id="cancelJob">Cancel</button>
+          <button class="btn btn-primary" id="submitJob" type="button">Create Job</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
